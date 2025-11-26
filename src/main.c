@@ -45,6 +45,22 @@ int main() {
 
         parse_input(input, args);
 
+        //built in cd command
+        if (args[0] != NULL && strcmp(args[0], "cd") == 0) {
+            if (args[1] == NULL) {
+                // if cd with no arguments then goes to Home directory
+                chdir(getenv("HOME"));
+                
+            }
+            else{
+                //cd <Directory>
+                if (chdir(args[1]) !=0) {
+                    perror("cd");
+                }
+            }
+            continue; //skips the fork and goes back to the prompt
+        }
+
         //fork a child process
         pid_t pid = fork();
         if(pid < 0){
