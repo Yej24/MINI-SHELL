@@ -53,16 +53,23 @@ int main() {
 
         }
 
-        if (pid == 0){
-            //child process trying to execute command
-            char *args[] = {input, NULL };
-            execvp(args[0], args);
-            perror("execvp");
-            exit(1);
-        }else{
-            //parent process waiting for child to finish
-            wait(NULL);
-        }
+       if (pid == 0){
+        //child process
+
+        //parsing the input into args[]
+        char *args[64];
+        parse_input(input, args);
+
+        execvp(args[0], args);
+
+        //if execvp fails, run perror and exit
+        fprintf(stderr, "mysh: command not found: %s\n", args[0]);
+        exit(1);
+
+       }else{
+        //parent process waits
+        wait(NULL);
+       }
         }
 
 
