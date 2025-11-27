@@ -7,23 +7,79 @@
 #define MAX_ARGS 64
 #define MAX_INPUT 1024
 
-// Function to parse input into arguments
-
+// ------------------------------
+// Parse input with quotes
+// ------------------------------
 void parse_input(char *input, char **args) {
-    int i = 0;
-    char *token;
+    int argc = 0;
+    char *p = input;
 
-    // Use " \t\n\r" to cover common whitespace
-    token = strtok(input, " \t\n\r");
+    while (*p != '\0' && argc < MAX_ARGS - 1) {
 
-    while (token != NULL && i < MAX_ARGS - 1) {
-        args[i++] = token;
-        token = strtok(NULL, " \t\n\r");
+        // Skip whitespace
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '\0') break;
+
+        char *start;
+
+        // Case 1: Double quoted
+        if (*p == '"') {
+            p++;
+            start = p;
+
+            while (*p != '"' && *p != '\0') p++;
+
+            int length = p - start;
+            args[argc] = malloc(length + 1);
+            strncpy(args[argc], start, length);
+            args[argc][length] = '\0';
+
+            if (*p == '"') p++; // skip closing quote
+        }
+
+        // Case 2: Single quoted
+        else if (*p == '\'') {
+            p++;
+            start = p;
+
+            while (*p != '\'' && *p != '\0') p++;
+
+            int length = p - start;
+            args[argc] = malloc(length + 1);
+            strncpy(args[argc], start, length);
+            args[argc][length] = '\0';
+
+            if (*p == '\'') p++;
+        }
+
+        // Case 3: Normal word
+        else {
+            start = p;
+
+            while (*p != ' ' && *p != '\t' && *p != '\0')
+                p++;
+
+            int length = p - start;
+            args[argc] = malloc(length + 1);
+            strncpy(args[argc], start, length);
+            args[argc][length] = '\0';
+        }
+
+        argc++;
     }
 
-    args[i] = NULL; // NULL-terminate for execvp
+    args[argc] = NULL;
 }
-// Function to handle a single pipe
+
+// --------------------------------------
+// Pipe handling
+// --------------------------------------
+void free_args(char **args) {
+    for (int i = 0; args[i] != NULL; i++) {
+        free(args[i]);
+    }
+}
+
 void handle_pipe(char *input) {
     char *cmd1 = strtok(input, "|");
     char *cmd2 = strtok(NULL, "|");
@@ -33,7 +89,7 @@ void handle_pipe(char *input) {
         return;
     }
 
-    // Trim leading spaces
+    // Trim spaces
     while (*cmd1 == ' ') cmd1++;
     while (*cmd2 == ' ') cmd2++;
 
@@ -51,11 +107,9 @@ void handle_pipe(char *input) {
 
     pid_t pid1 = fork();
     if (pid1 == 0) {
-        // First child: write to pipe
         close(fd[0]);
         dup2(fd[1], STDOUT_FILENO);
         close(fd[1]);
-
         execvp(args1[0], args1);
         fprintf(stderr, "mysh: command not found: %s\n", args1[0]);
         exit(1);
@@ -63,24 +117,28 @@ void handle_pipe(char *input) {
 
     pid_t pid2 = fork();
     if (pid2 == 0) {
-        // Second child: read from pipe
         close(fd[1]);
         dup2(fd[0], STDIN_FILENO);
         close(fd[0]);
-
         execvp(args2[0], args2);
         fprintf(stderr, "mysh: command not found: %s\n", args2[0]);
         exit(1);
     }
 
-    // Parent closes both ends
     close(fd[0]);
     close(fd[1]);
 
     waitpid(pid1, NULL, 0);
     waitpid(pid2, NULL, 0);
+
+    // Free allocated args
+    free_args(args1);
+    free_args(args2);
 }
 
+// --------------------------------------
+// Main shell loop
+// --------------------------------------
 int main() {
     char input[MAX_INPUT];
     char *args[MAX_ARGS];
@@ -94,19 +152,18 @@ int main() {
             break;
         }
 
-        // Remove newline
         input[strcspn(input, "\n")] = 0;
 
         if (strcmp(input, "exit") == 0)
             break;
 
-        // Handle pipe first
+        // Handle pipe
         if (strchr(input, '|') != NULL) {
             handle_pipe(input);
             continue;
         }
 
-        // Parse input once
+        // Normal command
         parse_input(input, args);
 
         if (args[0] == NULL)
@@ -118,24 +175,27 @@ int main() {
                 chdir(getenv("HOME"));
             else if (chdir(args[1]) != 0)
                 perror("cd");
+            free_args(args);
             continue;
         }
 
-        // Fork and execute command
+        // Fork and exec
         pid_t pid = fork();
         if (pid < 0) {
             perror("fork");
+            free_args(args);
             continue;
         }
 
         if (pid == 0) {
             execvp(args[0], args);
-            // If execvp fails
             fprintf(stderr, "mysh: command not found: %s\n", args[0]);
             exit(1);
         } else {
             wait(NULL);
         }
+
+        free_args(args);
     }
 
     return 0;
