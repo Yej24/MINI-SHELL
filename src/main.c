@@ -7,9 +7,9 @@
 #define MAX_ARGS 64
 #define MAX_INPUT 1024
 
-// ------------------------------
+
 // Parse input with quotes
-// ------------------------------
+
 void parse_input(char *input, char **args) {
     int argc = 0;
     char *p = input;
@@ -71,9 +71,9 @@ void parse_input(char *input, char **args) {
     args[argc] = NULL;
 }
 
-// --------------------------------------
+
 // Pipe handling
-// --------------------------------------
+
 void free_args(char **args) {
     for (int i = 0; args[i] != NULL; i++) {
         free(args[i]);
@@ -131,14 +131,12 @@ void handle_pipe(char *input) {
     waitpid(pid1, NULL, 0);
     waitpid(pid2, NULL, 0);
 
-    // Free allocated args
+    //Free allocated arguments
     free_args(args1);
     free_args(args2);
 }
 
-// --------------------------------------
-// Main shell loop
-// --------------------------------------
+
 int main() {
     char input[MAX_INPUT];
     char *args[MAX_ARGS];
