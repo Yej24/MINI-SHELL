@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "redirection.h"
 
 #define MAX_ARGS 64
 #define MAX_INPUT 1024
@@ -186,6 +187,7 @@ int main() {
         }
 
         if (pid == 0) {
+            handle_redirection(args);
             execvp(args[0], args);
             fprintf(stderr, "mysh: command not found: %s\n", args[0]);
             exit(1);
