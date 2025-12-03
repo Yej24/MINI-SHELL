@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "redirection.h"
+#include "parser.h"
+#include "executor.h"
+
 
 #define MAX_ARGS 64
 #define MAX_INPUT 1024
