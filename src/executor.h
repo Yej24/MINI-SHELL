@@ -1,6 +1,7 @@
 #ifndef EXECUTOR_H
 #define EXECUTOR_H
 
-int execute_pipeline(char ***comands, int num_cmds);
+// Executes a pipeline of commands (array of arg arrays)
+int execute_pipeline(char ***commands, int num_cmds);
 
 #endif
